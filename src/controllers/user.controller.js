@@ -13,14 +13,14 @@ const userRegister = asyncHandler(async (req, res)=> {
         throw new apierror(400, "All fields are required")
     }
 
-    const existetUser = user.findOne({
+    const existetUser = await user.findOne({
         $or: [{userName}, {email}]
     })
     if(existetUser){
         throw new apierror(409, "This credientials are already exist")
     }
 
-    const avatarLocalPath = req.files?.avator[0]?.path;
+    const avatarLocalPath = req.files?.avatar[0]?.path;
     const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
     if(!avatarLocalPath){
@@ -44,8 +44,8 @@ const userRegister = asyncHandler(async (req, res)=> {
     if(!createdUser){
         throw new apierror(500, "User is not created")
     }
-    return res.status(401).json(
-        new apiResponse(400, "User created successfully", createdUser)
+    return res.status(201).json(
+        new apiResponse(200, "User created successfully", createdUser)
     );
 
 });

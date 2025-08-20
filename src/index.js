@@ -1,11 +1,10 @@
 import dotenv from 'dotenv';
+dotenv.config({ path: "../.env" });
 import connectDB from './db/db.js';
 import { app } from './app.js';
-import { Router } from 'express';
-dotenv.config();
 
 const PORT = process.env.PORT || 5000; // make sure PORT is defined
-
+console.log("Mongo URI:", process.env.MONGO_URI);
 // Connect DB and then start the server
 connectDB()
   .then(() => {
