@@ -3,6 +3,21 @@ import { user } from "../models/user.model.js";
 import { apierror } from "../utils/apiError.js";
 import { apiResponse } from "../utils/apiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
+
+const generateToken = async (userId)=>{
+    try{
+        const client = await findById(userId)
+        const accesstoken = generateAccessToken({ id: client._id, email: client.email });
+        const refreshtoken = generateRefreshToken({ id: client._id });
+        client.refreshtoken = refreshtoken
+        await client.save({validateBeforeSave: false})
+        return {accesstoken, refreshtoken}
+    }
+    catch(error){
+        throw new apierror(500, "something went wrong wrong while generationg token" )
+    }
+}
 
 const userRegister = asyncHandler(async (req, res)=> {
     const {userName, email, fullName, password} = req.body
@@ -49,5 +64,39 @@ const userRegister = asyncHandler(async (req, res)=> {
     );
 
 });
+const userLogin = asyncHandler(async (req, res)=>{
+    const {email, userName, password} = req.body
+    if(!email || !userName){
+        throw new apierror(400, "Email or password required");
+    }
+    const client = await user.findOne({
+        $or: [{email}, {userName}]
+    })
+    if(!client){
+        throw new apierror(400, "User doesnt exit")
+    }
+    const ispasswordValid = await client.isCorrectPassword(password);
+    if (!ispasswordValid) {
+        throw new apierror(401, "Invalid password");
+    }
+    const {accesstoken, refreshtoken} = await generateToken(client._id);
+    const loggedInclient = await user.findById(client._id).select("-password -refreshtoken")
 
-export {userRegister};
+    const options = { 
+        httpOnly: true,
+        secure: true
+    }
+    return res.status(200)
+    .cookie("accesstoken", accesstoken, options)
+    .cookie("refreshtoken", refreshtoken, options)
+    .json(
+        {
+            client: loggedInclient, accesstoken, refreshtoken
+        },
+        new apiResponse(200, "userLogin successfully")
+    )
+
+
+});
+
+export {userRegister, userLogin};

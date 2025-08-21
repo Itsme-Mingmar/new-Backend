@@ -1,16 +1,16 @@
 import jwt from "jsonwebtoken";
 
-function generateAccessToken(user) {
+function generateAccessToken(payload) {
   return jwt.sign(
-    { id: user._id, userName: user.userName },
+    payload,
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: ACCESS_TOKEN_EXPIRY } 
   );
 }
 
-function generateRefreshToken(user) {
+function generateRefreshToken(payload) {
   return jwt.sign(
-    { id: user._id },
+    payload,
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: REFRESH_TOKEN_EXPIRY } 
   );
