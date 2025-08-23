@@ -66,7 +66,7 @@ const userRegister = asyncHandler(async (req, res)=> {
 });
 const userLogin = asyncHandler(async (req, res)=>{
     const {email, userName, password} = req.body
-    if(!email || !userName){
+    if(!(email || userName)){
         throw new apierror(400, "Email or password required");
     }
     const client = await user.findOne({
