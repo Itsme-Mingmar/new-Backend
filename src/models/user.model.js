@@ -50,11 +50,10 @@ const userSchema = new Schema({
 })
 userSchema.pre("save", async function (next) {
     if(this.isModified("password")){
-        this.password = bcrypt.hash(this.password, 10)
-        next();
+        this.password = await bcrypt.hash(this.password, 10);
     }
-    return next();
-})
+    next();
+}); 
 userSchema.methods.isCorrectPassword = async function (password) {
     return await bcrypt.compare(password, this.password);
 }
