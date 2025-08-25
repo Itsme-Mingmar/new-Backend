@@ -152,9 +152,52 @@ const userLogout = asyncHandler(async(req, res)=>{
     .clearCookie("accesstoken", options)
     .clearCookie("refreshtoken", options)
     .json(
-        new apiResponse(200, {}, "userLogin successfully")
+        new apiResponse(200, {}, "userLogout successfully")
     )
+})
+const changePassword = asyncHandler(async(req, res)=>{
+    const {oldPassword, newPassword} = req.body;
+    const client = await user.findById(req.user?._id);
+    const checkPassword = await client.isCorrectPassword(oldPassword);
+    if(!checkPassword){
+        throw new apierror(400, "Wrong password");
+    }
+    client.password = newPassword;
+    await client.save({validateBeforeSave: false});
+    return res.status(200).json(new apiResponse(200, {},"Password change successfully"))
+})
+const getCurrentUser = asyncHandler(async(req, res)=>{
+    return res.status(200).json(200, req.user, "current user" )
+})
+const updateAccountDetails = asyncHandler(async(req, res)=>{
+    const {fullName, email} = req.body;
+    if(!(email || fullName)){
+        throw new apierror(401, "unauthorized access")
+    }
+    const client = user.findByIdAndUpdate(req.user?._id, {
+        set: {
+            fullName: fullName,
+            email: email
+        } 
+    }, {new: true}).select("-password");
+    res.status(200).json(200, client, "Update successful");
     
 })
+const updateAvatarImage = asyncHandler(async(req, res)=>{
+    const avatarPath = req.file6?.path;
+    if(!avatarPath){
+        throw new apierror(400, "file path not received");
+    }
+    const avatar = uploadOnCloudinary(avatarPath);
+    if(!avatar.url){
+        throw new apierror(400, "failed to upload on cloudinary")
+    }
+    const newAvatar = await user.findByIdAndUpdate(req.user?._id, {
+        set: {
+            avatar: avatar.url
+        }
+    }, {new: true}).select("-password");
+    res.status(200).json(200, newAvatar, "file update successful");
+});
 
-export {userRegister, userLogin, userLogout, refrestAccesstoken};
+export {userRegister, userLogin, userLogout, refrestAccesstoken, changePassword, getCurrentUser, updateAccountDetails, updateAvatarImage};
