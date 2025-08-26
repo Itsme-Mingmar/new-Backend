@@ -169,35 +169,64 @@ const changePassword = asyncHandler(async(req, res)=>{
 const getCurrentUser = asyncHandler(async(req, res)=>{
     return res.status(200).json(200, req.user, "current user" )
 })
-const updateAccountDetails = asyncHandler(async(req, res)=>{
-    const {fullName, email} = req.body;
-    if(!(email || fullName)){
-        throw new apierror(401, "unauthorized access")
+const updateAccountDetails = asyncHandler(async (req, res) => {
+    const { fullName, email } = req.body;
+
+    if (!(email || fullName)) {
+        throw new apierror(400, "Please provide email or full name to update");
     }
-    const client = user.findByIdAndUpdate(req.user?._id, {
-        set: {
-            fullName: fullName,
-            email: email
-        } 
-    }, {new: true}).select("-password");
-    res.status(200).json(200, client, "Update successful");
-    
-})
-const updateAvatarImage = asyncHandler(async(req, res)=>{
-    const avatarPath = req.file6?.path;
-    if(!avatarPath){
-        throw new apierror(400, "file path not received");
+
+    const updatedUser = await user.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {  
+                ...(fullName && { fullName }),
+                ...(email && { email })
+            }
+        },
+        { new: true }
+    ).select("-password");
+
+    if (!updatedUser) {
+        throw new apierror(404, "User not found");
     }
-    const avatar = uploadOnCloudinary(avatarPath);
-    if(!avatar.url){
-        throw new apierror(400, "failed to upload on cloudinary")
+
+    res.status(200).json({
+        success: true,
+        message: "Update successful",
+        user: updatedUser
+    });
+});
+
+const updateAvatarImage = asyncHandler(async (req, res) => {
+    const avatarLocalPath = req.file?.path;
+
+    if (!avatarLocalPath) {
+        throw new apierror(400, "File path not received");
     }
-    const newAvatar = await user.findByIdAndUpdate(req.user?._id, {
-        set: {
-            avatar: avatar.url
-        }
-    }, {new: true}).select("-password");
-    res.status(200).json(200, newAvatar, "file update successful");
+
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    if (!avatar?.url) {
+        throw new apierror(400, "Failed to upload on Cloudinary");
+    }
+
+    const newAvatar = await user.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: { avatar: avatar.url }  
+        },
+        { new: true }
+    ).select("-password");
+
+    if (!newAvatar) {
+        throw new apierror(404, "User not found");
+    }
+
+    res.status(200).json({
+        success: true,
+        message: "File update successful",
+        user: newAvatar
+    });
 });
 
 export {userRegister, userLogin, userLogout, refrestAccesstoken, changePassword, getCurrentUser, updateAccountDetails, updateAvatarImage};
