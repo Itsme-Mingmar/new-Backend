@@ -1,5 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { user } from "../models/user.model.js";
+import { Subscription } from "../models/subscription.model.js";
 import { apierror } from "../utils/apiError.js";
 import { apiResponse } from "../utils/apiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
@@ -228,5 +229,116 @@ const updateAvatarImage = asyncHandler(async (req, res) => {
         user: newAvatar
     });
 });
+const getUserChannel = asyncHandler(async(req, res)=>{
+   const { username } = req.body;  
 
-export {userRegister, userLogin, userLogout, refrestAccesstoken, changePassword, getCurrentUser, updateAccountDetails, updateAvatarImage};
+if (!username) {
+    throw new apierror(400, "Invalid channel");
+}
+
+const channel = await user.aggregate([
+    {
+        $match: { userName: username.toLowerCase() }
+    },
+    {
+        $lookup: {
+            from: "subscriptions",
+            localField: "_id",
+            foreignField: "channel",
+            as: "subscribers"
+        }
+    },
+    {
+        $lookup: {
+            from: "subscriptions",
+            localField: "_id",
+            foreignField: "subscriber",
+            as: "subscribed"
+        }
+    },
+    {
+        $addFields: {
+            noSubscribers: { $size: "$subscribers" },
+            noSubscribed: { $size: "$subscribed" },
+            isSubscribed: {
+                $cond: {
+                    if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+                    then: true,
+                    else: false
+                }
+            }
+        }
+    },
+    {
+        $project: {
+            fullName: 1,
+            userName: 1,
+            noSubscribers: 1,
+            noSubscribed: 1,
+            isSubscribed: 1,
+            avatar: 1,
+            coverImage: 1,
+            email: 1
+        }
+    }
+]);
+    if(!channel){
+        throw new apierror(
+            400,
+            "Channel does not exit"
+        )
+    }
+ res.status(200).json({
+    success: true,
+    message: "access channel information successfully",
+    data: channel
+});
+
+});
+
+const subscribe = asyncHandler(async(req, res)=>{
+    try {
+        const {channelId} = req.body;
+        if(!channelId){
+            throw new apierror(400, "channel not found")
+        }
+        const clientId = req.user?._id;
+        if(clientId.toString()===channelId){
+            throw new apierror(400, "You cannot subscribed yourself")
+        }
+        const subscription = await Subscription.create({
+            subscriber: clientId,
+            channel: channelId
+        });
+        res.status(200).json(
+            new apiResponse(200, subscription, "subscribed successfully")
+        );
+        
+    } catch (error) {
+        throw new apiResponse(500, null, error.message)
+    }
+
+});
+const unSubscribe = asyncHandler(async(req, res)=>{
+ try {
+       const {channelId} = req.body;
+       if(!channelId){
+               throw new apierror(400, "channel not found")
+       }
+       const clientId = req.user?._id;
+       const result = await Subscription.findOneAndDelete({
+           subscriber: clientId,
+           channel: channelId
+       });
+        if (!result) {
+         throw new apierror(404, "You are not subscribed to this channelr");
+       }
+       res.status(200).json(
+           new apiResponse(200, "Unsubscribed successfully")
+       )
+ } catch (error) {
+     res.status(error.statusCode || 500).json(new apiResponse(500, null, error.message));
+ }
+});
+
+export {userRegister, userLogin, userLogout, refrestAccesstoken, changePassword, getCurrentUser, updateAccountDetails, updateAvatarImage, getUserChannel, subscribe, unSubscribe};
