@@ -60,7 +60,7 @@ const refrestAccesstoken = asyncHandler(async(req, res)=>{
 })
 
 const userRegister = asyncHandler(async (req, res)=> {
-    const {userName, email, fullName, password} = req.body
+    const {userName, email, fullName, password, role} = req.body
 
     if([userName, email, fullName, password].some((field)=>{
         field?.trim() === ""
@@ -92,6 +92,7 @@ const userRegister = asyncHandler(async (req, res)=> {
         fullName,
         email,
         password,
+        role: role || "user",
         avatar: avatar.url,
         coverImage: coverImage?.url || ""
     });

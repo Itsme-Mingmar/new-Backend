@@ -38,6 +38,11 @@ const userSchema = new Schema({
     coverImage: {
         type: String
     },
+    role: {
+    type: String,
+    enum: ["user", "admin"],
+    default: "user"
+    },
     watchHistory: [
         {
             type: Schema.Types.ObjectId,

@@ -2,6 +2,8 @@ import { Router } from "express";
 import { userLogin, userLogout, userRegister, refrestAccesstoken, changePassword, updateAccountDetails, updateAvatarImage, getUserChannel, subscribe, unSubscribe } from "../controllers/user.controller.js";
 import upload from "../middlewares/multer.middleware.js";
 import jwtVerify from "../middlewares/auth.middleware.js";
+import authorizeRole from "../middlewares/role.middleware.js";
+import { userList, userDelete } from "../controllers/admin.controller.js";
 
 const userRouter = Router();
 userRouter.post(
@@ -21,4 +23,6 @@ userRouter.post("/updateImage", upload.single("avatar"),jwtVerify,updateAvatarIm
 userRouter.post("/userProfile", jwtVerify, getUserChannel);
 userRouter.post("/subscribe", jwtVerify, subscribe);
 userRouter.post("/unSubscribe", jwtVerify, unSubscribe);
+userRouter.post("/userList", jwtVerify, authorizeRole, userList);
+userRouter.post("/userDelete", jwtVerify, authorizeRole, userDelete);
 export {userRouter};
